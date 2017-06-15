@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/lib/
+INSTALLNAME=librcar-imrS.a
+NAME=librcar-imrS.a
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:12-ICT
+DESCRIPTION=IMR libraries

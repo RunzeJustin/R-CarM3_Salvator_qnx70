@@ -1,0 +1,17 @@
+The devb drivers have the following source status:
+
+libs               source status
+cam                  clean
+cdrom                clean
+disk                 clean
+optical              clean
+sa                   do not release
+
+driver             source status
+eide                 NDA's with VIA, SiS, AcerLabs, Promise, ServerWorks, ATI
+                       JMicron, Intel, Renesas
+ahci                 clean
+umass                clean
+ram                  clean
+sercd                NDA with TI/HB - do not release
+sdmmc                unknown

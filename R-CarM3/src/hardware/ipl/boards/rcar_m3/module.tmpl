@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<module name="ipl-rcar_m3">
+	<type>Element</type>
+	<classification>Driver</classification>
+
+	<description>
+        <short>Initial Program Loader for R_CarM3 reference board</short>
+		<abstract>
+			<![CDATA[The ipl-R_CarM3 program is responsible for the first stage initialization of the R_CarM3 reference board, including initialization of the memory controller, and setting up a serial port for debug purposes. It then scans for a QNX IFS (Image File System) image, and copies that image to memory. Finally, it transfers control to the QNX startup-R_CarM3 module, which is located at the beginning of the IFS image.]]>
+		</abstract>
+	</description>
+
+	<supports>
+		<availability>
+			<cpu isa="aarch64">
+				<byteOrder>le</byteOrder>
+			</cpu>
+		</availability>
+	</supports>
+
+	<source available="true">
+		<location type="">.</location>
+	</source>
+	<GroupOwner>hw</GroupOwner>
+
+	<contents>
+		<component id="rcar_m3" generated="true">
+			<location basedir="{cpu}/{endian}" runtime="true">ipl-rcar_m3</location>
+		</component>
+	</contents>
+
+</module>

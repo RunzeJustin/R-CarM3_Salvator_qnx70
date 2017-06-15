@@ -1,0 +1,41 @@
+
+%C[Options] *
+/*
+options:
+-display=[int]	 Sets the display id
+-pipeline=[int]  Sets the wfd pipeline id
+-device=[int]    Sets the device index. The R-Car H2 on Lager board support device=0 (adv7612) or device=1 (adv7180)
+-bsize=[width]x[height] Sets the buffer size.
+			width — the horizontal resolution of the Video capture buffer. 
+			height — the vertical resolution of the Video capture buffer.
+-format=[str]  Sets the buffer format. Sets the buffer format. The format string can be "uyvy" for device 1 or "rgb888" for device 0. 
+			   Default format is uyvy
+-size=[width]x[height]  Sets the size of the window
+-csize=[width]x[height] Sets the size for cropping
+-cpos=[x],[y]           Sets the position for cropping. The top and left coordinates of the clipped area.	
+ex: camera_ctrl -display=1 -pipeline=5 -device=1 -bsize=1280x800 -size=1280x800 -cpos=13x30
+*/
+
+#Testing VIN on HDMI0 monitor
+#vin 1
+camera_ctrl -display=1 -pipeline=5 -device=1 -bsize=1920x1080 -size=1920x1080
+#vin 0
+camera_ctrl -display=1 -pipeline=5 -device=0 -bsize=1920x1080 -size=1920x1080
+
+#Testing VIN on HDMI1 monitor
+#vin 1
+camera_ctrl -display=2 -pipeline=9 -device=1 -bsize=1920x1080 -size=1920x1080
+#vin 0
+camera_ctrl -display=2 -pipeline=9 -device=0 -bsize=1920x1080 -size=1920x1080
+
+#Testing VIN on LVDS monitor
+#vin 1
+camera_ctrl -display=3 -pipeline=1 -device=1 -bsize=1280x800 -size=1280x800
+#vin 0
+camera_ctrl -display=3 -pipeline=1 -device=0 -bsize=1280x800 -size=1280x800
+
+#Testing VIN on VGA monitor
+#vin 1
+camera_ctrl -display=4 -pipeline=13 -device=1 -bsize=1280x720 -size=1280x720
+#vin 0
+camera_ctrl -display=4 -pipeline=13 -device=0 -bsize=1280x720 -size=1280x720

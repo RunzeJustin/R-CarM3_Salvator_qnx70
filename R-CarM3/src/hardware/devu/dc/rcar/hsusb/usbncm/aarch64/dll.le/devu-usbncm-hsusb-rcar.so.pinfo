@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/lib/dll/
+INSTALLNAME=devu-usbncm-hsusb-rcar.so
+NAME=devu-usbncm-hsusb-rcar.so
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:16-ICT
+DESCRIPTION= Driver for Renesas High Speed USB peripheral controller.

@@ -1,0 +1,750 @@
+QNX generic DMA Controller library interface
+--------------------------------------------
+
+1. Abstract
+
+The DMA library interface allows generic modules to be written that
+can abstract the details of programming a DMA Controller (DMAC)
+from individual drivers.  This allows drivers to work with multiple
+DMACs, and also allows multiple drivers to share the code that
+controls the DMAC.
+
+DMA tranfers involve a source and a destination.  A DMA transfer,
+once intiated, moves a block of data from the source to the
+destination, without involving the CPU.  Each DMA transfer
+consists of a series of one or more transfer cycles.  During
+each transfer cycle, a piece of data, of a certain data unit
+size, it transferred from the source to the destination.
+
+2. Supported DMAC features
+
+Not all features are supported on all DMACs.  It is possible to
+query the DMA library to determine which features are available.
+
+The following can be either the source or the destination of a
+DMA data transfer:
+
+o Devices that are capable of generating DMA requests.
+o RAM, and memory-mapped devices.
+o IO-mapped devices.
+
+When the source or destination is a memory buffer, the following
+types of buffers are supported:
+
+ a) Contiguous
+
+	The buffer consists of a single, physically contiguous fragment,
+	with a start address and size.
+
+ b) Segmented
+
+	The buffer consists of a single, physically contiguous fragment,
+	that is divided into multiple logical, equal-sized segments.
+
+ c) Scatter-Gather
+
+	The buffer consists of multiple fragments of varying lengths.
+	The buffer is described by an array of address/length pairs.
+
+Interrupt-on-complete support: the DMAC can be configured to generate
+an interrupt on the completion of a DMA transfer.  For segmented
+buffers, an interrupt can be generated each time a segments-worth
+of data has been transferred.  To receive interrupt notification
+from the library, the driver supplies a structure of type
+"struct sigevent" to the library.  This event will be delivered
+by the library upon reception of an interrupt.
+
+Loop mode: at the end of a transfer, the DMAC automatically resets
+its internal addresses and counters, and repeats the transfer.
+
+Burst mode: The DMAC can be configured to select between burst mode
+or cycle-stealing mode.
+
+Address increment: The DMAC can be configured to increment the
+address(es) each time a unit of data is transferred, by the data
+unit byte size.  It may also be configured to decrement the
+address(es) after each transfer, or to leave them unmodified.  The
+data transfer unit size is also configurable.
+
+Bounce buffers: some devices have restrictions on the location and
+alignment of memory buffers that can be used for DMA transfers.
+The DMA library will hide these restrictions from the drivers, by
+using "bounce" buffers.  However, since the use of bounce buffers
+incurs a memory overhead and speed penalty, the DMA library can
+optionally provide memory management routines that allow the driver
+to obtain buffers that can be addressed directly by the DMAC.
+
+3. API
+
+The primary DMA library entry point is get_dmafuncs().  This entry
+point is called to retrieve the remainder of the libraries entry
+points.  This allows the library to be provided as a DLL, or as a
+static or shared library.  In the case of the library being used
+as a DLL, the driver would call dlsym() to find the get_dmafuncs()
+entry point, otherwise the driver would just reference get_dmafuncs()
+directly.
+
+The structures and defines used by DMA Contoller libraries, and
+drivers that use the libraries, are contained in <hw/dma.h>
+
+The remainder of the entry points, which are stored in the
+dma_functions_t structure, are as follows:
+
+int	(*init)(const char *options);
+void	(*fini)(void);
+
+int	(*driver_info)(dma_driver_info_t *devinfo);
+
+	Retrieves information about the DMA library.  The structure that
+	"devinfo" points to contains the following members:
+
+	uint8_t		dma_version_major;
+
+		The DMA library sets this to DMALIB_VERSION_MAJOR.
+
+	uint8_t		dma_version_minor;
+
+		The DMA library sets this to DMALIB_VERSION_MINOR.
+
+	uint8_t		dma_rev;
+
+		The DMA library sets this to DMALIB_REVISION.
+
+	uint8_t		driver_rev;
+
+		The DMA library sets this to its internal revision number.
+
+	char		*description;
+
+		An ASCII string containing a description of the DMA library.
+		e.g. "DMA Controller library for ACME DMAC2000+"
+		
+	uint32_t	num_channels;
+
+		Maximum number of simultaneously active DMA channels
+		provided by the DMAC.
+
+	uint32_t	max_priority;
+
+		The number of priority levels available for DMA
+		transfer arbitration, minus one.  The minimum priority
+		level that may be specified upon attaching to a DMA
+		channel is zero.
+
+int	(*channel_info)(unsigned channel, dma_channel_info_t *chinfo);
+
+	Retrieves channel-specific information about the DMAC.  The structure
+	that "chinfo" points to contains the following members:
+
+	uint32_t		max_xfer_size;
+
+		Maximum amount of data that can be transferred by the DMAC,
+		in one DMA transfer.
+
+	uint32_t		max_src_segments;
+
+		Maximum number of segments that can comprise a segmented
+		source buffer, if segmented source buffers are supported.
+
+	uint32_t		max_dst_segments;
+
+		Maximum number of segments that can comprise a
+		segmented destination buffer, if segmented destination
+		buffers are supported.
+
+	uint32_t		max_src_fragments;
+
+		Maximum number of fragments can comprise a scatter-gather
+		source buffer, if scatter-gather source buffers are supported.
+
+	uint32_t		max_dst_fragments;
+
+		Maximum number of fragments can comprise a
+		scatter-gather destination buffer, if scatter-gather
+		destination buffers are supported.
+
+	uint32_t		xfer_unit_sizes;
+
+		A bitmap which describes the data transfer unit sizes
+		that the DMAC can support.  Transfer unit sizes must be
+		powers of two.  As an example, a DMAC that can support
+		one-byte and two-byte transfer unit sizes would set this to
+		0x3 (i.e. 0x1 | 0x2), whereas a DMAC that can support
+		2-byte and 8-byte transfer units would set it to 0xa
+		(i.e. 0x2 | 0x8).
+
+	dma_channel_caps	caps;
+
+		Flags which describe the capabilities of the DMA channel.
+		Defined values are:
+
+			DMA_CAP_BURST_MODE
+
+				Channel supports burst-mode transfers.
+
+			DMA_CAP_REPEAT
+
+				Channel supports repeated transfers.
+
+			DMA_CAP_EVENT_ON_COMPLETE
+
+				Library can deliver an event upon
+				transfer completion.
+
+			DMA_CAP_EVENT_PER_SEGMENT
+
+				Library can deliver an event upon
+				each segment transfer completion.
+
+			DMA_CAP_SRC_SEGMENTED
+
+				The source buffer can be segmented.
+
+			DMA_CAP_SRC_SCATTER_GATHER
+
+				The source buffer can consist of
+				multiple fragments of various sizes.
+
+			DMA_CAP_SRC_UNALIGNED
+
+				Source buffer addresses do not need to
+				be aligned on transfer unit boundaries.
+
+			DMA_CAP_SRC_INCREMENT
+
+				The source address can be incremented
+				after each unit of data is transferred.
+
+			DMA_CAP_SRC_DECREMENT
+
+				The source address can be decremented
+				after each unit of data is transferred.
+
+			DMA_CAP_SRC_NO_INCREMENT
+
+				The source address can be left umodified
+				after each unit of data is transferred.
+
+			DMA_CAP_DST_SEGMENTED
+
+				The destination buffer can be segmented.
+
+			DMA_CAP_DST_SCATTER_GATHER
+
+				The destination buffer can consist of
+				multiple fragments of various sizes.
+
+			DMA_CAP_DST_UNALIGNED
+
+				Destination buffer addresses do not need to
+				be aligned on transfer unit boundaries.
+
+			DMA_CAP_DST_INCREMENT
+
+				The destination address can be incremented
+				after each unit of data is transferred.
+
+			DMA_CAP_DST_DECREMENT
+
+				The destination address can be decremented
+				after each unit of data is transferred.
+
+			DMA_CAP_DST_NO_INCREMENT
+
+				The destination address can be left umodified
+				after each unit of data is transferred.
+
+			DMA_CAP_IO_TO_MEMORY
+
+				Transfers from IO address space to memory
+				address space are supported.
+
+			DMA_CAP_IO_TO_IO
+
+				Transfers from IO address space to IO
+				address space are supported.
+
+			DMA_CAP_IO_TO_DEVICE
+
+				Transfers from IO address space to a
+				peripheral device are supported.
+
+			DMA_CAP_MEMORY_TO_MEMORY
+
+				Transfers from memory address space to memory
+				address space are supported.
+
+			DMA_CAP_MEMORY_TO_IO
+
+				Transfers from memory address space to IO
+				address space are supported.
+
+			DMA_CAP_MEMORY_TO_DEVICE
+
+				Transfers from memory address space to memory
+				address space are supported.
+
+			DMA_CAP_DEVICE_TO_MEMORY
+
+				Transfers from a peripheral device to memory
+				address space are supported.
+
+			DMA_CAP_DEVICE_TO_IO
+
+				Transfers from a peripheral device to IO
+				address space are supported.
+
+			DMA_CAP_DEVICE_TO_DEVICE
+
+				Transfers from one peripheral device to another
+				peripheral device are supported.
+
+	uint64_t	mem_lower_limit;
+	uint64_t	mem_upper_limit;
+
+		If the driver is allocating memory for use by the
+		DMA Controller, each contiguous chunk of memory
+		must lie within the physical address range specified
+		by mem_lower_limit -> mem_upper_limit.  If this
+		contraint is not satisfied, the DMA library may
+		have to use bounce buffers in order to transfer
+		the data, thereby degrading performance.
+
+	uint64_t	mem_nocross_boundary;
+
+		If the driver is allocating memory for use by the
+		DMA Controller, each contiguous chunk may not cross
+		a physical address boundary of mem_nocross_boundary
+		bytes.  For example, some ISA based DMA Controllers
+		have a boundary restriction whereby a DMA transfer
+		cannot cross a 64K byte boundary.
+
+		If the boundary constraint is not satisfied, the
+		DMA library may have to use bounce buffers in order
+		to transfer the data, thereby degrading
+		performance.
+
+void *	(*channel_attach)(const struct sigevent *event,
+	    unsigned *channel, int priority, dma_attach_flags flags);
+
+	Attach to a DMA channel.
+
+	"options" points to an ASCII string which contains a list of library-
+	specific options.  This string should be suitable for parsing with
+	getsubopt().
+
+	"event" describes an event to be delivered when an interrupt
+	occurs.  This structure will be passed to either InterruptAttach()
+	or InterruptAttachEvent() when the library attachs to the
+	interrupt number associated with the DMA channel.
+
+	"channel" points to the DMA channel number that the library
+	should attach to.  If DMA_ATTACH_FLAG_ANY_CHANNEL is
+	specified, then the value that "channel" points to is
+	ignored, and the library will find a free channel to attach
+	to.  Upon return, channel points to the DMA channel number
+	that was actually attached to.
+
+	"priority" controls the priority assigned to the DMA channel
+	being attached to.  Various flags specify how this value is
+	to be interpreted (see below).  The number of priority levels
+	can be determined via the driver_info() entry point.
+
+	Valid values for "flags" are:
+
+		DMA_ATTACH_ANY_CHANNEL
+
+			Instead of attempting to attach to the DMA
+			channel number that "channel" points to,
+			the library will attach to a free DMA
+			channel, if any are available.
+
+		DMA_ATTACH_PRIORITY_STRICT
+
+			Specifies that the DMA channel must be
+			assigned the exact priority level specified.
+			If the DMA channel cannot be assigned this
+			priority level, the attach will fail.
+
+		DMA_ATTACH_PRIORITY_ATLEAST
+
+			Specifies that the DMA channel must be
+			assigned the priority level specified, or
+			higher.  If the DMA channel cannot be assigned
+			at least this priority level, the attach will fail.
+
+		DMA_ATTACH_PRIORITY_HIGHEST
+
+			Specifies that the DMA channel should be
+			assigned the highest priority level currently
+			available.
+
+		DMA_ATTACH_EVENT_ON_COMPLETE
+
+			Specifies that the structure that "event" points
+			to is valid, and that this event should be
+			delivered each time a transfer completion
+			interrupt occurs.
+
+		DMA_ATTACH_EVENT_PER_SEGMENT
+
+			Specifies that the structure that "event" points
+			to is valid, and that this event should be
+			delivered each time a segment transfer completion
+			interrupt occurs.
+
+		DMA_ATTACH_CASCADE
+
+			This flag may not be specified along with
+			DMA_ATTACH_ANY_CHANNEL.  The DMA channel
+			number that "channel" points to will be
+			put into cascaded mode.  The channel will
+			be left in cascaded mode until channel_release()
+			is called.  A DMA channel, when in cascaded
+			mode, may not be used for DMA transfers by
+			programming the DMA Contoller.  Instead,
+			the device that cascades into the DMA
+			contoller channel must be programmed.
+
+		DMA_ATTACH_FRIENDLY
+
+			Indicates that hardware resources that may be
+			needed to perform transfers on the DMA channel
+			may be shared with other users of the library.
+			This is useful on systems where there are less
+			of such resources than there are users of
+			the DMAC.  If this flag is specified, calls
+			to xfer_start() could potentially block until
+			resources become available.  Typically, this
+			means that the call will block until a DMA
+			transfer in progress on behalf of another
+			user of the library completes.  The library
+			will typically implement any necessary
+			inter-process synchronisation using
+			synchronisation objects residing in a shared
+			memory buffer.
+
+	Note that DMA_ATTACH_EVENT_ON_COMPLETE and DMA_ATTACH_EVENT_PER_SEGMENT
+	are mutually exclusive.
+
+	Note also that DMA_ATTACH_PRIORITY_STRICT, DMA_ATTACH_PRIORITY_ATLEAST,
+	and DMA_ATTACH_PRIORITY_HIGHEST are mutually exclusive.
+
+	Upon success, this function returns a handle that is used upon
+	subsequent calls to the library that are associated with the
+	attached channel.
+
+	Upon failure, NULL is returned, and errno is set as appropriate.
+
+void	(*channel_release)(void *handle);
+
+	Releases a DMA channel.  The driver calls this when it no
+	longer needs to use the DMA channel.  "handle" is the value
+	that was returned from a successful call to channel_attach.
+	The handle is no longer valid after this function returns.
+
+void *	(*alloc_buffer)(void *handle, unsigned size);
+
+	This routine is may or may not be supplied by the library.
+	If it is not provided, then a NULL pointer will be present
+	in the function table.  This function is intended for DMACs
+	that have restrictions in the location and alignment of
+	memory buffers that can be directly addressed by the DMAC.
+	If present, the driver should use this function to allocate
+	memory that is directly addressable by the DMAC.
+
+void    (*free_buffer)(void *handle, unsigned size);
+
+	This function is used to release memory that was allocated
+	by alloc_buffer().  If the DMA library provided the
+	alloc_buffer() function, then it must also provide
+	free_buffer().
+
+int	(*setup_xfer)(void *handle, dma_transfer_t *tinfo);
+
+	Prepare the DMAC for data transfers.  "tinfo" points to
+	a structure which contains the following members:
+
+	dma_addr_t	*src_addrs;
+
+		A list of addresses which describe zero or more
+		source buffer fragments.
+
+	dma_addr_t	*dst_addrs;
+
+		A list of addresses which describe zero or more
+		destination buffer fragments.
+
+	unsigned	src_fragments;
+
+		For scatter-gather source addressing, this specifies
+		the number of entries in the src_addrs array.
+
+		For segmented source addressing, this specifies
+		the number of logical segments into which the source
+		buffer is divided.
+
+		For non-segmented source adressing, src_fragments
+		should not be greater than one if the device does not
+		support scatter-gather source addressing.
+
+		If the data source is not memory space or I/O space,
+		then src_addrs and src_fragments are ignored.
+		
+	unsigned	dst_fragments;
+
+		For scatter-gather destination addressing, this
+		specifies the number of entries in the dst_addrs
+		array.
+
+		For segmented destination addressing, this specifies
+		the number of logical segments into which the
+		destination buffer is divided.
+
+		For non-segmented destination adressing, dst_fragments
+		should not be greater than one if the device does not
+		support scatter-gather destination addressing.
+
+		If the data destination is not memory space or I/O
+		space, then dst_addrs and dst_fragments are ignored.
+
+	dma_xfer_flags  src_flags;
+		These flags describe the transfer source.  Valid values are:
+
+		DMA_ADDR_FLAG_IO
+
+			Source is I/O space.  The first element of
+			src_addrs is valid, and contains the I/O address
+			of the transfer source.
+			
+		DMA_ADDR_FLAG_MEMORY
+
+			Source is memory space.  The src_addrs array
+			contains the physical address(es) of the transfer
+			source buffer.
+			
+		DMA_ADDR_FLAG_DEVICE
+
+			Source is a peripheral device.  Depending
+			on the device, an address may or may not
+			need to be supplied.  For devices that can
+			operate in single-address mode, the src_addrs
+			array will be ignored.  In dual-address
+			mode, the src_addrs array contains the
+			physical address of the transfer source.
+
+		DMA_ADDR_FLAG_NO_INCREMENT
+
+			Only meaninful if the src_addrs address(es) are used.
+			After each data unit is transferred, the source
+			address is not changed, therefore subsequent
+			data unit transfers will occur from the same
+			source address.
+			
+			Note: If DMA_ADDR_FLAG_SCATTER_GATHER is specified,
+			this flag may not be specified.
+			
+		DMA_ADDR_FLAG_DECREMENT
+
+			Only meaninful if the src_addrs address(es) are used.
+			After each data unit is transferred, the source
+			address is decremented by the data unit transfer size.
+
+			Note: DMA_ADDR_FLAG_DECREMENT and
+			DMA_ADDR_FLAG_NO_INCREMENT are mutually exclusive.
+			if neither of these flags are set, then the
+			source address will be incremented by the data unit
+			transfer size after each data unit is transferred.
+			
+			Note: If DMA_ADDR_FLAG_SCATTER_GATHER is specified,
+			this flag may not be specified.
+			
+		DMA_ADDR_FLAG_SEGMENTED
+
+			The source data buffer consists of a single
+			physically contiguous fragment, which is
+			logically divided into a number of equal-sized
+			segments.  The total byte size of the
+			transfer, divided by the number of segments,
+			must be an integral value.  If this flag is
+			specified, only the first element of the
+			src_addrs array is valid, and "src_fragments"
+			specifies the number of segments in the source buffer.
+
+			NOTE: The source buffer may be segmented, and so
+			may the destination buffer, but both the source
+			and destination buffers may not be segmented for
+			any DMA transfer.
+
+	dma_xfer_flags  dst_flags;
+
+		These flags describe the transfer destination.  Valid values are:
+
+		DMA_ADDR_FLAG_IO
+
+			Destination is I/O space.  The first element of
+			dst_addrs is valid, and contains the I/O address
+			of the transfer destination.
+			
+		DMA_ADDR_FLAG_MEMORY
+
+			Destination is memory space.  The dst_addrs array
+			contains the physical address(es) of the transfer
+			destination buffer.
+			
+		DMA_ADDR_FLAG_DEVICE
+
+			Destination is a peripheral device.
+			Depending on the device, an address may or
+			may not need to be supplied.  For devices
+			that can operate in single-address mode,
+			the dst_addrs array will be ignored.  In
+			dual-address mode, the dst_addrs array
+			contains the physical address of the transfer
+			destination.
+
+		DMA_ADDR_FLAG_NO_INCREMENT
+
+			Only meaninful if the dst_addrs address(es)
+			are used.  After each data unit is transferred,
+			the destination address is not changed,
+			therefore subsequent data unit transfers
+			will occur to the same destination address.
+
+			Note: If DMA_ADDR_FLAG_SCATTER_GATHER is specified,
+			this flag may not be specified.
+			
+		DMA_ADDR_FLAG_DECREMENT
+
+			Only meaninful if the dst_addrs address(es)
+			are used.  After each data unit is transferred,
+			the destination address is decremented by
+			the data unit transfer size.
+
+			Note: DMA_ADDR_FLAG_DECREMENT and
+			DMA_ADDR_FLAG_NO_INCREMENT are mutually
+			exclusive.  if neither of these flags are
+			set, then the destination address will be
+			incremented by the data unit transfer size
+			after each data unit is transferred.
+
+			Note: If DMA_ADDR_FLAG_SCATTER_GATHER is
+			specified, this flag may not be specified.
+
+		DMA_ADDR_FLAG_SEGMENTED
+
+			The destination data buffer consists of a
+			single physically contiguous fragment,
+			which is logically divided into a number
+			of equal-sized segments.  The total byte
+			size of the transfer, divided by the number
+			of segments, must be an integral value.
+			If this flag is specified, only the first
+			element of the dst_addrs array is valid,
+			and "dst_fragments" specifies the number
+			of segments in the destination buffer.
+
+			NOTE: The source buffer may be segmented,
+			and so may the destination buffer, but both
+			the source and destination buffers may not
+			be segmented for any DMA transfer.
+
+	unsigned	xfer_unit_size;
+
+		Size of each data unit transferred.  Must be a power of two.
+
+	unsigned	xfer_bytes;
+
+		Total number of bytes to be transferred.  xfer_bytes must
+		be a multipe of xfer_unit_size.
+
+	dma_mode_flags	mode_flags;
+
+		Flags affecting the transfer mode.  Valid value are:
+
+		DMA_MODE_FLAG_BURST
+
+			DMA is to be performed in burst mode (as opposed
+			to cycle-stealing mode).
+
+		DMA_MODE_FLAG_REPEAT
+
+			At the end of the transfer, the DMAC counters
+			and addresses are reset to the values they had
+			at the beginning of the transfer, and the transfer
+			is repeated.  The DMA transfers will be repeated
+			continuously until xfer_abort() is called.
+
+int	(*xfer_start)(void *handle);
+
+	Commence a DMA transfer.  There must not be an
+	outstanding DMA transfer in progress.  setup_xfer()
+	must have been called at some point since channel_attach()
+	was called, in order to prepare the DMAC for transfers.
+
+int	(*xfer_abort)(void *handle);
+
+	Abort a DMA transfer that is currently in progress.
+	When this function returns, it is possible to initiate
+	a new transfer by calling xfer_start(), or to re-configure
+	the DMAC by calling setup_xfer().
+
+int     (*xfer_complete)(void *handle);
+
+	Completes an outstanding DMA transfer.
+
+	There are two cases when this function should be called:
+	if the driver receives an event from the DMAC library (as
+	a result of having specified DMA_ATTACH_EVENT_PER_SEGMENT
+	or DMA_ATTACH_EVENT_ON_COMPLETE) or if the driver is not
+	expecting delivery of a completion event, but has determined
+	that a transfer has finished because bytes_left() returned 0.
+
+	When the driver receives an event from the DMAC library,
+	it should call this function before engaging in any other
+	interaction with the DMA library.  Internally, the DMAC
+	library might need to clear and/or unmask an interrupt
+	source, for example.
+
+	It is possible that the event was generated as a result
+	of an interrupt from another source, in the case where
+	an interrupt is shared between multiple devices.  In
+	this case, this function will return -1, to indicate that
+	the event that was delivered should be ignored.
+
+	Even in the case where bytes_left() was used to determine
+	transfer completion, the driver should not assume that the
+	data that was transferred is in a usable state, until it
+	calls complete_xfer().  As an example, if the library is
+	using bounce buffers as part of the data transfer, a return
+	of zero by bytes_left(), or a transfer complete event
+	delivery, might signify that the data has been transferred
+	into the bounce buffer, but it may not be copied to the
+	final destination until this function is called.
+
+	Upon successful return from this function (0 returned), it
+	is possible to initiate a new transfer by calling xfer_start(),
+	or to re-configure the DMAC by calling setup_xfer(), as
+	long as the transfer is not in repeat mode.  If the transfer
+	is in repeat mode, this function serves solely as a means
+	of determining if a segments-worth of data has been transferred,
+	which implies that the DMA engine is has proceeded to the
+	next buffer segment.
+
+unsigned (*bytes_left)(void *handle);
+
+	Indicates how many bytes remain to be transferred
+	in the current DMA transfer.  If zero is returned,
+	and the transfer is not in repeat mode, the transfer
+	has been completed.  In this case, the driver should
+	not assume that the data has reached its ultimate
+	destination, until complete_xfer() has been called.
+
+4. NOTES
+
+Before calling any of the functions in the DMA library API, the
+calling thread must have IO privity.  A thread can obtain IO
+privity, by making the following call:
+
+	ThreadCtl(_NTO_TCTL_IO, 0);
+

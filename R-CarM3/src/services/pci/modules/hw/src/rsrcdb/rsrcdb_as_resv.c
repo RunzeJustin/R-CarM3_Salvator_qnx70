@@ -1,0 +1,104 @@
+/*
+ * $QNXLicenseC:
+ * Copyright (c) 2012, 2016 QNX Software Systems. All Rights Reserved.
+ *
+ * You must obtain a written license from and pay applicable license fees to QNX
+ * Software Systems before you may reproduce, modify or distribute this software,
+ * or any work that includes all or part of this software.   Free development
+ * licenses are available for evaluation and non-commercial purposes.  For more
+ * information visit http://licensing.qnx.com or email licensing@qnx.com.
+ *
+ * This file may contain contributions from others.  Please review this entire
+ * file for other proprietary rights or license notices, as well as the QNX
+ * Development Suite License Guide at http://licensing.qnx.com/license-guide/
+ * for other information.
+ * $
+ */
+
+#include <stddef.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <sys/rsrcdbmgr.h>
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
+
+#include <pci/pci.h>
+
+#include "private/hwmod_api.h"
+#include "hw_lib.h"
+
+/*
+ ===============================================================================
+ rsrcdb_as_resv
+
+ Do the work of allocating/reserving the specified address space. This is
+ common function for handling the reservation/allocation of address space
+ resources. Although it can be overridden in a target specific module, all
+ attempts not to do this should be made even if it means tweaking this common HW
+ dependent module API.
+
+ Most of the request to the rsrdbmgr is constructed from the information
+ provided in <as_map> however specific additional flags can be added in
+ <req_flags>
+
+*/
+__attribute__ ((visibility ("internal")))
+pci_err_t rsrcdb_as_resv(_pci_asmap_t *as_map, uint_t req_flags)
+{
+	pci_err_t r = PCI_ERR_EINVAL;
+	rsrc_request_t req = {0};
+
+	req.flags = req_flags;
+
+	switch(as_map->ba.type)
+	{
+		case pci_asType_e_MEM:
+		{
+			assert((as_map->ba.attr & pci_asAttr_e_ALIGN) >= pci_asAttr_e_ALIGN_MEM_MIN);
+
+			req.flags |= RSRCDBMGR_PCI_MEMORY;
+			req.name = PCI_RSRC_NAME_MEM_ASPACE;
+
+			r = PCI_ERR_OK;
+			break;
+		}
+		case pci_asType_e_IO:
+		{
+			assert((as_map->ba.attr & pci_asAttr_e_ALIGN) >= pci_asAttr_e_ALIGN_IO_MIN);
+
+			req.flags |= RSRCDBMGR_PCI_MEMORY;
+			req.name = PCI_RSRC_NAME_IO_ASPACE;
+
+			r = PCI_ERR_OK;
+			break;
+		}
+		default:
+			break;
+	}
+	if (r == PCI_ERR_OK)
+	{
+		const uint64_t end_limit[] = {UINT16_MAX, UINT32_MAX, UINT64_MAX, 0/*UINT128_MAX*/};
+		req.length = as_map->ba.size;
+		req.flags |= (RSRCDBMGR_FLAG_RANGE | RSRCDBMGR_FLAG_ALIGN);
+		req.start = as_map->ba.addr;
+		req.end = end_limit[(as_map->ba.attr & pci_asAttr_e_BIT_MASK) >> 14];
+		req.align = (uint64_t)1 << (as_map->ba.attr & pci_asAttr_e_ALIGN);
+		if (req.name != NULL) req.flags |= RSRCDBMGR_FLAG_NAME;
+
+		/* reserve the address space */
+		if (rsrcdbmgr_attach(&req, 1) == -1) r = PCI_ERR_ASPACE_NOT_AVAIL;
+		else
+		{
+			as_map->ba.addr = req.start;
+			assert(as_map->ba.size == req.end - req.start + 1);
+			assert(as_map->ba.addr <= end_limit[(as_map->ba.attr & pci_asAttr_e_BIT_MASK) >> 14]);
+		}
+	}
+	return r;
+}
+
+#if defined(__QNXNTO__) && defined(__USESRCVERSION)
+#include <sys/srcversion.h>
+__SRCVERSION("$URL: http://svn.ott.qnx.com/product/branches/7.0.0/beta/services/pci/modules/hw/src/rsrcdb/rsrcdb_as_resv.c $ $Rev: 798837 $")
+#endif

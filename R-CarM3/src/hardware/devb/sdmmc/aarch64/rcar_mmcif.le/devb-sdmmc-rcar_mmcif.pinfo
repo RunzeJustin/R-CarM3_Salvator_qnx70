@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/sbin/
+INSTALLNAME=devb-sdmmc-rcar_mmcif
+NAME=devb-sdmmc-rcar_mmcif
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:26-ICT
+DESCRIPTION=sd/mmc disk driver

@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<module name="devc-serscif">
+  <classification>Driver</classification>
+  <description>
+    <short>Serial driver for R_Car</short>
+    <abstract><![CDATA[
+                    The devc-serscif manager is a serial device manager for QNX Neutrino.
+            ]]></abstract>
+  </description>
+  <supports>
+    <availability>
+      <cpu isa="arm">
+        <byteOrder>le.v7</byteOrder>
+      </cpu>
+    </availability>
+  </supports>
+  <contents>
+    <component id="devc-serscif" generated="true">
+      <location basedir="arm/le.v7">devc-uart</location>
+    </component>
+  </contents>
+  <requires>
+    <part rootMacro="LIBIOCHAR_ROOT" build="true" location="lib/io-char"/>
+    <part build="false" location="hardware/devc"/>
+  </requires>
+</module>

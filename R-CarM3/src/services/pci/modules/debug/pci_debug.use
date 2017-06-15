@@ -1,0 +1,12 @@
+
+-------------------------------------------------------------------------------
+%C
+
+This module implements debug logging for all PCI server modules. It is
+included by setting the environment variable PCI_DEBUG_MODULE
+
+Release History
+---------------
+
+1.0 - initial release
+

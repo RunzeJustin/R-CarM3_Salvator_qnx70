@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<module name="dma">
+  <classification>SDK</classification>
+  <contents>
+    <component id="header" generated="false"/>
+  </contents>
+  <requires>
+    <part build="false" location="lib/dma/amanda"/>
+    <part build="false" location="utils/a/amanda"/>
+  </requires>
+</module>

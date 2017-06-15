@@ -1,0 +1,20 @@
+I2C control utility
+
+Syntax:
+  # i2c-control device=[device name] slave=[slave address] count=[number] data=[data] speed=[bus speed] mode=[write/read] [-v] subaddr=[sub address]
+
+Options:
+  device: device node path. Ex: /dev/i2c1
+  slave:  The slave address of device
+  count:  Number of bytes to be read
+  data:   Bytes to be written. In read mode, data byte is accepted 1 byte for sub-address.
+  mode:   write or read
+  speed:  Set bus speed (accept from 50000 to 400000)
+  subaddr: Set sub address or register address
+  -v :    Show log and print read data  
+
+    
+Launch examples:
+  Write: i2c-control device=/dev/i2c1 slave=0x71 data=02 subaddr=10 speed=1 mode=write
+  Read:  i2c-control device=/dev/i2c1 slave=0x71 count=1 subaddr=10 speed=1 mode=read
+

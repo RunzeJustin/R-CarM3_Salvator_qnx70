@@ -1,0 +1,528 @@
+###########################################################################
+##
+## QNX Neutrino 7.0 on the R-Car M3 (ARMv8 Cortex-A53-A57 core) Salvator-X Board
+##
+###########################################################################
+##
+## SUPPORTED DEVICES:
+##
+## SERIAL: SCIF1, SCIF2
+## I2C: I2C2, I2C4
+## SPI FLASH
+## HSCIF: HSCIF1
+## THERMAL
+## AUDIO: AK4613
+## SD: SDHI0, SDHI3
+## MMC: MMC0
+## DMA
+## NETWORK: RAVB
+## USB: USB2.0, USB3.0
+## PCIe: PCIe0
+## WATCHDOG
+###########################################################################
+##
+## NOTES:
+##
+###########################################################################
+
+###########################################################################
+## START OF BUILD SCRIPT
+###########################################################################
+
+#[+keeplinked]
+[+compress]
+[image=0x40100000]
+[virtual=aarch64le,raw] .bootstrap = {
+    # Options specific to this BSP:
+    #
+    startup-rcarm3-salvatorx -P2 -W -vvvvv
+    #######################################################################
+    ## PATH set here is the *safe* path for executables.
+    ## LD_LIBRARY_PATH set here is the *safe* path for libraries.
+    #######################################################################
+    PATH=/proc/boot:/bin:/usr/bin:/opt/bin:/sbin:/usr/sbin:/usr/lib:/tmp:/etc
+    LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib:/lib/dll:/opt/lib:/usr/lib:/tmp:/etc procnto-smp-instr -ae
+}
+
+[+script] .script = {
+    # Initialise the console
+    procmgr_symlink ../../proc/boot/libc.so /usr/lib/ldqnx-64.so.2
+
+    display_msg Welcome to QNX Neutrino 7.0 on the R-Car M3 Salvator-X Board
+
+    # Setup Environment variables
+    ENV=/etc/profile
+
+    # Start some common servers
+    display_msg Starting slogger and pipe servers...
+    slogger2
+    pipe &
+
+    #######################################################################
+    ## WatchDog utility
+    ## If startup is given '-W' parameter then the 'wdtkick' utility MUST
+    ## be uncommented below.
+    #######################################################################
+    display_msg Starting watchdog ...
+    wdtkick_rcar -t10000
+
+    #######################################################################
+    ## Resource seed
+    #######################################################################
+    resource_seed dma=sys=0,47 dma=audio=0,31 dma=audiopp=0,28 mem=sys=0,256 mem=audio=0,256
+
+    #######################################################################
+    ## SERIAL driver
+    #######################################################################
+    display_msg Starting Serial driver...
+    devc-serscif -e -F -b115200 -x -c 14745600/16 -t 14 scif2 &
+    waitfor /dev/ser1 4
+    reopen /dev/ser1
+
+    #######################################################################
+    ## I2C driver
+    #######################################################################
+    display_msg "Starting I2C driver ..."
+    # I2C2
+    i2c-rcar-A -p0xe6510000 -i318 -v --u2 &
+    # I2C4
+    i2c-rcar-A -p0xe66D8000 -i51 -v --u4 &
+
+    #######################################################################
+    ## USB driver
+    #######################################################################
+    display_msg "Starting USB Host driver ..."
+    io-usb -t memory=/memory/below4G -dxhci ioport=0xEE000000,irq=0x86,memory=/memory/below4G -dehci ioport=0xEE080100,irq=0x8C,ioport=0xEE0A0100,irq=0x90,memory=/memory/below4G -dohci ioport=0xEE080000,irq=0x8C,ioport=0xEE0A0000,irq=0x90,memory=/memory/below4G
+
+    waitfor /dev/io-usb/io-usb 4
+    devb-umass blk noatime,commit=none,cache=10m cam pnp mem name=/memory/below4G &
+
+    #######################################################################
+    ## USB2.0 Function driver
+    #######################################################################
+    # display_msg "Starting USB2.0 Function driver..."
+    # UMASS
+    # devb-ram ram capacity=204800 nodinit disk name=ramdisk blk cache=512k qnx6 sync=optional
+    # fdisk /dev/ramdisk0 add -t 178
+    # mount -e /dev/ramdisk0
+    # waitfor /dev/ramdisk0t178
+    # mkqnx6fs /dev/ramdisk0t178
+    # io-usb-dcd -n /dev/otg/io-usb-dcd -d usbumass-hsusb-rcar ioport=0xe6590000,irq=139
+    # devu-umass_client-block -s/dev/otg/io-usb-dcd -l lun=0,fname=/dev/ramdisk0
+    # ulink_ctrl -s/dev/otg/io-usb-dcd -l1
+
+    # USB Serial
+    # io-usb-dcd -d usbser-hsusb-rcar ioport=0xe6590000,irq=139
+    # waitfor /dev/io-usb-dcd/io-usb 4
+    # devc-serusb_dcd -e -v -F -s -d iface_list=0
+    # waitfor /dev/serusb1
+    # ulink_ctrl -l 1
+
+    # NCM
+    # io-usb-dcd -n /dev/otg/io-usb-dcd -d usbncm-hsusb-rcar ioport=0xe6590000,irq=139,verbose=10
+    # waitfor /dev/otg/io-usb-dcd 4
+    # mount -Tio-pkt -o  verbose=0,path=/dev/otg/io-usb-dcd,protocol=ncm,usbdnet_mac=000022446688,mac=020022446688 devnp-usbdnet.so
+    # ifconfig ncm0 192.168.0.1
+    # ulink_ctrl -l 1 -s /dev/otg/io-usb-dcd
+
+    #######################################################################
+    ## SPI Flash driver
+    #######################################################################
+    display_msg "Starting SPI Flash driver..."
+    devf-rcar_qspi &
+
+    #######################################################################
+    ## Network driver
+    #######################################################################
+    display_msg "Starting Network driver..."
+    #AVB Ethernet
+    sh -c "io-pkt-v6-hc -dravb mac=`genmac-rcar3 -m`, -ptcpip pkt_typed_mem=below4G"
+    waitfor /dev/socket 10
+    display_msg "Starting DHCP..."
+    ifconfig ravb0 up
+    dhclient -nw -lf /tmp/dhclient.leases ravb0
+
+    #######################################################################
+    ## Remote debug
+    #######################################################################
+    inetd
+    devc-pty
+    waitfor /dev/ptyp0 4
+    waitfor /dev/socket 4
+    qconn port=8000
+
+    #######################################################################
+    ## Audio driver
+    #######################################################################
+    display_msg "Starting Audio driver ..."
+    io-audio -d rcar-ak4613
+    sleep 1
+
+    #######################################################################
+    ## SD memory card driver
+    #######################################################################
+    display_msg "Starting SDHI memory card driver ..."
+    devb-sdmmc-rcar_sdhi-salvatorx blk cache=2m cam pnp,bounce=128k mem name=below4G sdio idx=0 disk name=sd@0
+    devb-sdmmc-rcar_sdhi-salvatorx blk cache=2m cam pnp,bounce=128k mem name=below4G sdio idx=3 disk name=sd@3
+    waitfor /dev/sd0 1
+
+    #######################################################################
+    ## eMMC flash driver
+    #######################################################################
+    display_msg "Starting MMC memory flash driver ..."
+    devb-sdmmc-rcar_mmcif blk cache=2m cam bounce=128k mem name=below4G sdio idx=2 disk name=mmc@0
+    #waitfor /dev/mmc0 1
+
+    #######################################################################
+    ## PCI Server
+    #######################################################################
+    # display_msg Starting PCI Server...
+    # pci-server --bus-scan-limit=1 -c
+
+    [+session] ksh &
+
+    #######################################################################
+    ## Graphic driver
+    #######################################################################
+    display_msg "Starting Display driver..."
+    GRAPHICS_ROOT=/usr/lib/graphics/R_CarM3
+    LD_LIBRARY_PATH=/usr/lib:/lib:/lib/dll:$LD_LIBRARY_PATH
+    screen &
+    waitfor /dev/screen 3
+}
+
+# Redirect console messages
+[type=link] /bin/sh=/proc/boot/ksh
+[type=link] /dev/console=/dev/ser1
+[type=link] /tmp=/dev/shmem
+[type=link] /bin/waitfor=/bin/on
+[type=link] /sbin/devc-serscif=/proc/boot/devc-serscif
+[type=link] /sbin/devc-pty=/proc/boot/devc-pty
+[type=link] /usr/bin/pdebug=/proc/boot/pdebug
+
+###########################################################################
+## Shared Libraries
+###########################################################################
+libc.so
+libm.so
+libslog2.so
+libslog2parse.so
+libslog2shim.so
+libtracelog.so
+
+# USB host
+libhiddi.so
+libusbdi.so
+devu-ehci.so
+devu-ohci.so
+devu-xhci.so
+
+# USB function
+devu-usbncm-hsusb-rcar.so
+devu-usbser-hsusb-rcar.so
+devu-usbumass-hsusb-rcar.so
+devnp-usbdnet.so
+
+# To be removed when USB/SDMMC drivers are updated to use new PCI server API
+libpci_api_old.so
+
+# Block device
+libcam.so
+io-blk.so
+cam-disk.so
+fs-qnx6.so
+fs-dos.so
+libncursesw.so.1
+
+# Network driver
+libsocket.so
+libcrypto.so
+devnp-ravb.so
+# Support ASIX-based USB to Ethernet Dongles
+# devnp-asix.so
+
+# Audio driver
+deva-ctrl-rcar-ak4613.so
+deva-util-restore.so
+libasound.so
+
+# PCIe
+libpci.so
+/lib/dll/pci/pci_hw-rcar.so=../install/aarch64le/lib/dll/pci/pci_hw-rcar.so
+/lib/dll/pci/pci_server-buscfg-generic.so=${QNX_TARGET}/aarch64le/lib/dll/pci/pci_server-buscfg-generic.so
+/lib/dll/pci/pci_slog.so=${QNX_TARGET}/aarch64le/lib/dll/pci/pci_slog.so
+/lib/dll/pci/pci_debug.so=${QNX_TARGET}/aarch64le/lib/dll/pci/pci_debug.so
+/lib/dll/pci/pci_strings.so=${QNX_TARGET}/aarch64le/lib/dll/pci/pci_strings.so
+/lib/dll/pci/pci_cap-0x10.so=${QNX_TARGET}/aarch64le/lib/dll/pci/pci_cap-0x10.so
+/lib/dll/pci/pci_cap-0x11.so=${QNX_TARGET}/aarch64le/lib/dll/pci/pci_cap-0x11.so
+/lib/dll/pci/pci_cap-0x05.so=${QNX_TARGET}/aarch64le/lib/dll/pci/pci_cap-0x05.so
+/lib/dll/pci/pci_cap-0x01.so=${QNX_TARGET}/aarch64le/lib/dll/pci/pci_cap-0x01.so
+
+# Executables
+[data=c]
+
+# Create a profile so telnet sessions will get environment variables
+/etc/profile={
+export SYSNAME=nto
+export TERM=qansi
+export HOME=/
+export LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib:/lib/dll:/usr/lib:/opt/lib:/usr/lib/graphics/R_CarM3
+export PATH=/proc/boot:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/lib:/opt/bin
+export SHELL=/bin/sh
+export DISPLAY=127.1:0
+export HOSTNAME=Neutrino
+export TMPDIR=/tmp
+export LOGNAME=root
+export PCI_HW_MODULE=/lib/dll/pci/pci_hw-rcar.so
+export PCI_DEBUG_MODULE=/lib/dll/pci/pci_debug.so
+export PCI_SLOG_MODULE=/lib/dll/pci/pci_slog.so
+export PCI_BKWD_COMPAT_MODULE=/lib/dll/pci/pci_bkwd_compat.so
+export PCI_MODULE_BLACKLIST=/lib/dll/pci/pci_cap-0x11.so:/lib/dll/pci/pci_cap-0x05.so
+export PCI_BASE_VERBOSITY=2
+}
+
+###########################################################################
+## WatchDog utility
+###########################################################################
+/proc/boot/wdtkick_rcar=wdtkick-rcar
+
+###########################################################################
+## Resource seed
+###########################################################################
+/proc/boot/resource_seed=resource_seed
+
+###########################################################################
+## Serial driver
+###########################################################################
+devc-serscif
+
+###########################################################################
+## I2C driver
+###########################################################################
+i2c-rcar-A
+i2c-rcar-B
+i2c-control
+
+###########################################################################
+## USB driver
+###########################################################################
+usb
+io-usb
+devb-umass
+
+###########################################################################
+## USB Function driver
+###########################################################################
+io-usb-dcd
+ulink_ctrl
+devu-umass_client-block
+devc-serusb_dcd
+
+###########################################################################
+## SPI Flash driver
+###########################################################################
+devf-rcar_qspi
+
+###########################################################################
+## Network driver
+###########################################################################
+io-pkt-v6-hc
+nicinfo
+ping
+ftp
+fs-nfs3
+ifconfig
+if_up
+inetd
+telnet
+genmac-rcar3
+
+###########################################################################
+## dhclient support
+###########################################################################
+dhclient
+/sbin/ifconfig=ifconfig
+[search=${QNX_TARGET}/sbin] /sbin/dhclient-script=dhclient-script
+[search=${QNX_TARGET}/etc]/etc/dhclient.conf=dhclient.conf
+
+###########################################################################
+## Remote debug
+###########################################################################
+qconn
+devc-pty
+
+###########################################################################
+## Network services (telnet) support
+###########################################################################
+tftp
+/usr/sbin/ftpd=ftpd
+/usr/sbin/inetd=inetd
+/bin/login=login
+/bin/passwd=passwd
+/usr/sbin/telnetd=telnetd
+
+/etc/group=${QNX_TARGET}/etc/group
+/etc/hosts=${QNX_TARGET}/etc/hosts
+/etc/services=${QNX_TARGET}/etc/services
+
+# NOTE: The following is very insecure and must not be used in a production
+#       environment.  This allows telnet access to root without a password!
+#       Even with a password this is not secure as telnet passes the password
+#       unencrypted over the network.  NO NOT USE THIS IN AN UNSECURED ENVIRONMENT!
+#       This configuration is only meant for initial setup and testing of a new board.
+#       If you need network access use a secure protocol like ssh (e.g. OpenSSH or Drop Bear).
+#
+/etc/inetd.conf = {
+telnet     stream tcp nowait root  /usr/sbin/telnetd        in.telnetd
+ftp        stream tcp nowait root  /usr/sbin/ftpd           in.ftpd -l
+}
+/etc/ftpusers = {
+/* Allow all users to connect to the ftp server */
+* allow
+}
+/etc/ftpd.conf = {
+/* Make things a+rw by default */
+umask all 0000
+}
+/etc/passwd = {
+root::0:0:Superuser:/root:/bin/sh
+ftp::14:80:FTP User:/tmp:
+}
+
+###########################################################################
+## Audio driver
+###########################################################################
+io-audio
+wave
+waverec
+mix_ctl
+
+###########################################################################
+## SD/MMC block driver support files
+###########################################################################
+devb-sdmmc-rcar_sdhi-salvatorx
+devb-sdmmc-rcar_mmcif
+
+###########################################################################
+## Filesystems support
+###########################################################################
+fdisk
+mkdosfs
+mkqnx6fs
+devb-ram
+
+###########################################################################
+## Thermal driver
+###########################################################################
+rcar-thermal
+
+###########################################################################
+## PCIe server Support
+###########################################################################
+pci-server
+pci-tool
+
+###########################################################################
+# LCD Graphics support
+###########################################################################
+screen
+/etc/system/config/img.conf=${QNX_TARGET}/etc/system/config/img.conf
+/usr/share/backdrops/1280x800/default.jpg=../prebuilt/usr/share/backdrops/1280x800/default.jpg
+/usr/share/backdrops/1280x720/default.jpg=../prebuilt/usr/share/backdrops/1280x720/default.jpg
+/usr/share/backdrops/1920x1080/default.jpg=../prebuilt/usr/share/backdrops/1920x1080/default.jpg
+
+#GRAPHIC ROOT:
+/usr/lib/graphics/R_CarM3/graphics.conf=../prebuilt/aarch64le/usr/lib/graphics/R_CarM3/graphics-salvatorx.conf
+/usr/lib/graphics/R_CarM3/libWFDrcar.so=../install/aarch64le/usr/lib/graphics/R_CarM3/libWFDrcar.so
+/usr/lib/graphics/R_CarM3/libwfdcfg-salvatorx.so=../install/aarch64le/usr/lib/graphics/R_CarM3/libwfdcfg-salvatorx.so
+
+#GRAPHIC LIB:
+/usr/lib/libEGL.so=libEGL.so
+/usr/lib/libEGL.so.1=libEGL.so.1
+/usr/lib/libGLESv1_CL.so=libGLESv1_CL.so
+/usr/lib/libGLESv1_CL.so.1=libGLESv1_CL.so.1
+/usr/lib/libGLESv1_CM.so=libGLESv1_CM.so
+/usr/lib/libGLESv1_CM.so.1=libGLESv1_CM.so.1
+/usr/lib/libGLESv2.so=libGLESv2.so
+/usr/lib/libGLESv2.so.1=libGLESv2.so.1
+/usr/lib/libscreen.so=libscreen.so
+/usr/lib/libscreen.so.1=libscreen.so.1
+/usr/lib/libswblit.so=libswblit.so
+/usr/lib/libswblit.so.1=libswblit.so.1
+/usr/lib/libWFD.so=libWFD.so
+/usr/lib/libWFD.so.1=libWFD.so.1
+/usr/lib/libdisputil.so.2=libdisputil.so.2
+/usr/lib/libz.so.2=libz.so.2
+/usr/lib/libpng14.so.0=libpng14.so.0
+/usr/lib/libfreetype.so=libfreetype.so
+
+/lib/dll/screen-gles1.so=screen-gles1.so
+/lib/dll/screen-gles2.so=screen-gles2.so
+/lib/dll/screen-sw.so=screen-sw.so
+/lib/dll/screen-debug.so=screen-debug.so
+/lib/libhiddi.so.1=libhiddi.so.1
+/lib/libinputevents.so.1=libinputevents.so.1
+/lib/libkalman.so.1=libkalman.so.1
+/lib/libjpeg.so.4=libjpeg.so.4
+/lib/libgmem.so.1=libgmem.so.1
+
+#GRAPHIC APP
+sw-vsync
+#yuv-test
+
+###########################################################################
+## VIN library 
+###########################################################################
+libpps.so
+libpps.so.1
+/proc/boot/libcapture-board-rcarm3-salvator.so=libcapture-board-rcarm3-salvator.so
+/proc/boot/libcapture-soc-rcarm3.so=libcapture-soc-rcarm3.so
+[type=link] libcapture.so=libcapture.so.1
+/proc/boot/libcapture-decoder-adv7482.so=libcapture-decoder-adv7482.so
+[type=link] libcapture.so.1=/proc/boot/libcapture-board-rcarm3-salvator.so
+
+## VIN application 
+/proc/boot/camera_ctrl=camera_ctrl
+/etc/imrlx4.conf=../prebuilt/etc/imr/imrlx4.conf
+libslog2parse.so.1
+
+###########################################################################
+## general commands
+###########################################################################
+cp
+ls
+cat
+ksh
+pipe
+pidin
+uname
+slogger2
+slog2info
+slay
+mount
+umount
+use
+date
+shutdown
+chmod
+ln
+rm
+mv
+sleep
+dd
+top
+flashctl
+grep
+df
+find
+mkdir
+pwd
+waitfor
+echo
+dumper
+in32
+out32
+
+###########################################################################
+## END OF BUILD SCRIPT
+###########################################################################

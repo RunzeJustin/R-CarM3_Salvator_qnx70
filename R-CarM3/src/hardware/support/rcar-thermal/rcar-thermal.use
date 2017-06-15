@@ -1,0 +1,7 @@
+Renesas R-CAR thermal driver
+
+Syntax
+%C [options] &
+
+Options:
+    -v      Verbose level (default 0)

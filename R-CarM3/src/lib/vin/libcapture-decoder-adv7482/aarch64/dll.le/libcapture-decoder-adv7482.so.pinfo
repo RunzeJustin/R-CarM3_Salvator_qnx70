@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/lib/dll/
+INSTALLNAME=libcapture-decoder-adv7482.so
+NAME=libcapture-decoder-adv7482.so
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:13-ICT
+DESCRIPTION=VIN libraries

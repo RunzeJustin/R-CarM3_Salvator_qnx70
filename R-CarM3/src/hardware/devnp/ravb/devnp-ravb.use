@@ -1,0 +1,21 @@
+%C Driver for Renesas RAVB Ethernet interface
+
+
+Syntax:
+  io-pkt-v6-hc -d ravb [option[,option ...]] ...
+
+Options:
+  speed=100|1000		Force media data rate in Megabits/Second
+  duplex=0|1		Force half (0) or full (1) duplex mode.
+  flow=0|1|2|3		Force flow control 0=off, 1=Bidirectional pause,
+			2=Rx pause frames, 3=Tx pause frames
+  iorange=0xXXXXXXXX	IO base address.
+  irq=num		IRQ of the interface.
+  mac=XXXXXXXXXXXX	Interface address of the controller.
+  verbose(=N)		Set verbosity level. With no N then level 1,
+			repeated settings increase verbosity. N is a mask:
+			1=general, 2=PHY, 4=Rx, 8=Tx.
+
+Examples:
+  io-pkt-v6-hc -d ravb
+  ifconfig ravb0 192.0.2.1

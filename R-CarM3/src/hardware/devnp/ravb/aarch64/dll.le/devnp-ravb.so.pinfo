@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/lib/dll/
+INSTALLNAME=devnp-ravb.so
+NAME=devnp-ravb.so
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:46-ICT
+DESCRIPTION=Renesas R-Car EtherAVB Network driver

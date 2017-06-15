@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/sbin/
+INSTALLNAME=devc-serscif
+NAME=devc-serscif
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:45-ICT
+DESCRIPTION=Character device driver for the R_Car SCIF/HSCIF UART

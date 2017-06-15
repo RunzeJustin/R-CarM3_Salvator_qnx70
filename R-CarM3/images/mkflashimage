@@ -1,0 +1,7 @@
+echo "Adding IPL..."
+${QNX_HOST}/usr/bin/ntoaarch64-objcopy -Ielf64-littleaarch64 -Obinary ../src/hardware/ipl/boards/rcar_m3/aarch64/le/ipl-rcar_m3 ./ipl-rcar_m3.bin
+mkrec -r -ffull -s0x100000 ./ipl-rcar_m3.bin > ipl-tmp1-rcar_m3.bin
+cat ./ipl-tmp1-rcar_m3.bin ./ifs-rcarm3-salvatorx.bin > ipl-ifs-rcarm3-salvatorx.bin
+cat ./ipl-tmp1-rcar_m3.bin ./ifs-rcarm3-starterkit.bin > ipl-ifs-rcarm3-starterkit.bin
+rm -f *tmp*
+echo "done!!!!!!!"

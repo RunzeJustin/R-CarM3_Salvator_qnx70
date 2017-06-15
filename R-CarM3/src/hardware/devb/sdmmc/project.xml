@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<module name="devb-sdmmc">
+  <classification>Driver</classification>
+  <description>
+    <short>SD/MMC Driver</short>
+    <abstract><![CDATA[
+	Driver for SD/MMC cards
+	]]></abstract>
+  </description>
+  <supports>
+    <availability>
+      <cpu isa="arm">
+        <byteOrder>le</byteOrder>
+      </cpu>
+      <cpu isa="x86"/>
+    </availability>
+  </supports>
+  <contents>
+    <component id="sdmmc" generated="true">
+      <location basedir="arm/le">devb-sdmmc</location>
+      <location basedir="x86/o">devb-sdmmc</location>
+    </component>
+  </contents>
+  <requires>
+    <part build="true" location="lib/drvr"/>
+    <part build="false" location="hardware/devb"/>
+  </requires>
+</module>

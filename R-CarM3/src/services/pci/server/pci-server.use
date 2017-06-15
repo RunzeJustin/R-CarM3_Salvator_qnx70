@@ -1,0 +1,155 @@
+
+-------------------------------------------------------------------------------
+%C
+
+The PCI server resource manager
+
+The following command line options are provided
+
+    --config=config file
+        allows control over the PCI server runtime mode.
+        See /etc/system/config/pci/pci_server-template.cfg for reference.
+        You can freely edit this file (or a copy) to alter the PCI server
+        runtime behaviour.
+
+    --bus-scan-limit=<value>
+        <value> specifies the highest bus to be scanned during enumeration.
+        This value can also be set with the BUS_SCAN_LIMIT parameter within
+        a server configuration file with this option taking precedence.
+
+        Note: this parameter does not limit the highest assigned bus
+              number, only the highest bus scanned during enumeration
+
+    -c
+        configure bridges and devices. The generic bus configuration module
+        is used along with default configuration settings. Configuration can
+        also be controlled with the DO_BUS_CONFIG parameter within a server
+        configuration file with this option taking precedence
+
+    --aspace-enable
+    --aspace-enable=[all|mem|io]
+        this option will enable the Memory and/or I/O address spaces in
+        devices which have been assigned that address space type but which
+        have not had that address space enabled in the CMD register. This
+        option is only applicable in enumeration only mode as configuration
+        mode (-c command line option or DO_BUS_CONFIG=yes in a server config
+        file) will enable assigned address spaces automatically
+
+        In recent UEFI based x86 platforms, it has been observed that even
+        though the UEFI has assigned address space to a device, that address
+        space is not being enabled. This option corrects for that behaviour
+
+        When used without an '=' or with '=all', all assigned address spaces
+        will be enabled. The mutually exclusive '=mem' and '=io' variants
+        allow the user to restrict which address spaces are acted on. It is
+        not anticipated that these will be used very often if at all
+
+        ** IMPORTANT **
+        This option operates on all devices. You can use the 'pci-tool' or a
+        similar utility to selectively enable address spaces if desired.
+        See the ASPACE_ENABLE parameter in the [buscfg] section of the
+        /etc/system/config/pci/pci_server-template.cfg file for an example
+
+    -n
+        specify the server namespace entry (default: /dev/pci)
+
+    -v[v[v[v[...]]]
+        cumulatively increases the verbosity of displayed and logged detail
+
+Release History
+---------------
+
+1.7 - adds the --aspace-enable option and ASPACE_ENABLE= server config file
+      parameter to enable the Memory and/or I/O address spaces in devices
+      which have been assigned that address space type but which have not had
+      that address space enabled in the CMD register
+      See /etc/system/config/pci/pci_server-template.cfg and the
+      --aspace-enable option description above for details
+
+1.6 - fixes a bug related to device address space assignments for devices
+      with large address space size and alignment requirements on platforms
+      with limited availability of these resources and where bus
+      configuration is required (ie. use of a pci_server-buscfg-*.so module)
+
+      If doing bus configuration, this version of the server requires a bus
+      configuration module version 1.2 or later. Earlier modules will not
+      be loaded. You can ensure the correct version is loaded as follows
+
+      1. if you don't set the PCI_SERVER_BUSCFG_MODULE environment variable
+         or prefer to leave it set to an un-versioned name, create a symbolic
+         link to the correct module within /lib/dll/pci/
+         ex.
+         ln -s pci_server-buscfg-generic.so pci_server-buscfg-generic.so.1.2
+
+      2. explicitly set the PCI_SERVER_BUSCFG_MODULE environment variable to
+         the full path of the correct pci_server-buscfg-*.so module in the
+         environment in which the PCI server is run
+        ex.
+        PCI_SERVER_BUSCFG_MODULE=/lib/dll/pci/pci_server-buscfg-generic.so.1.2
+
+1.5 - fixes a bug related to address space mappings of the MSI-X vector
+      table and pending bits array area. This bug will manifest itself on
+      ARM platforms when using some of the cap_msix_* API's.
+      Note that x86 HW dependent modules are unaffected by this issue
+
+      Details follow
+
+      The MSI-X capability module provides API's to mask and unmask interrupt
+      entries and this is accomplished by manipulating the vector table. When
+      establishing a mapping to the vector table and pending bits array, the
+      PCI server was returning untranslated PCI addresses. For HW dependent
+      modules for which there is a 1:1 correspondence between PCI and CPU
+      address spaces, there is no problem however for those in which this is
+      not the case, use of these API's will likely result in a SIGBUS. The
+      issue has been corrected so that a properly translated address is
+      returned by the PCI server
+
+1.4 - fixes a bug related to the enabling of capability modules
+
+    * Note that this issue only occurs when using either the MSI or
+      MSI-X specific capability API's AFTER the capability is enabled.
+      Details follow
+
+    * When an application enables a capability using the 'pci_cap_t'
+      obtained with a successful call to pci_device_read_cap(), a
+      corruption would occur that could lead to a program fault when that
+      'pci_cap_t' was subsequently used in capability specific API's.
+      Although the issue technically applies to all capability modules,
+      in reality the issue would only manifest itself for the MSI and MSI-X
+      capability modules as these are the only 2 modules currently provided
+      which are not considered to be enabled by virtue of their existence.
+      Additionally, the fault would only be triggered if the application used
+      the 'pci_cap_t' in a capability specific API call after the capability
+      was explicitly enabled. For most common use cases, this is typically
+      neither required nor done (for example the pci_bkwd_compat.so module
+      will enable MSI's by default for devices that support them however it
+      does not call any additional MSI specific API's once the capability is
+      enabled)
+
+1.3 - fixes a bug with bridge resets in enumeration only mode
+
+    * If the server was started in enumeration only mode and a bridge
+      hierarchy was being reset, the base/limit registers of any downstream
+      bridges were not being restored. This was because these values are not
+      cached when the server does not configure these devices.
+      This problem occurs primarily on x86 systems whereby the server is
+      normally started in enumeration mode because the BIOS has already
+      configured the hierarchy.
+      The issue has been corrected and restoration will occur regardless of
+      whether the server does the configuration
+
+1.2 - update to libpci.so.1.2 and added support for pci_device_reset()
+
+    * This version of the PCI server requires bus configuration module
+      versions 1.1 or higher (ie. pci_server-buscfg-generic.so.1.1 or
+      pci_server-buscfg-hotplug.so.1.1)
+
+    * If the server event handler module will be used, this version of the
+      server requires pci_server-event_handler.so.1.2 or higher
+
+1.1 - update to libpci.so.1.1
+
+    * If the server event handler module will be used, this version of the
+      server requires pci_server-event_handler.so.1.1 or higher
+
+1.0 - initial release

@@ -1,0 +1,19 @@
+<!-- Unless otherwise specified, values/attributes are free-form strings -->
+    <!-- type is currently either BSP or SourceOnly -->
+<sourcePackage type="BSP" id="bsp-renesas-rcarm3-SDP7.0">
+    <title>Renesas R-Car M3 BSP for QNX SDP 7.0 Beta</title>
+    <release>latest</release>
+    <maturity>Development Build</maturity>
+    <license>QDL and Apache II</license>
+    <startup>startup-rcarm3-starterkit</startup>
+	<startup>startup-rcarm3-salvatorx</startup>
+    <description> This package contains the source and build files for targeting QNX/Neutrino on the Renesas R-Car M3 board.</description>
+    <vendor>QNX Software Systems</vendor>
+    <qnxTargetVersion>SDP7.0</qnxTargetVersion>
+        <qnxTargetCPU variant="armle.v7">ARM</qnxTargetCPU>
+    <!-- type is currently only import, will be extended in the future. -->
+    <bsp type="import">
+        <import id="r-car-m3">src/hardware/startup/boards/rcarm3/starterkit/build</import>
+		<import id="r-car-m3">src/hardware/startup/boards/rcarm3/salvatorx/build</import>
+    </bsp>
+</sourcePackage>

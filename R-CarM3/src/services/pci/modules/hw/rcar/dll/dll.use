@@ -1,0 +1,16 @@
+
+-------------------------------------------------------------------------------
+%C
+
+Hardware Dependent Module for Renesas R-Car Gen3 platforms.
+This module specifically supports R-Car Gen3 boards.
+
+The Module is selected by setting the PCI_HW_MODULE environment variable
+
+Configuration files can be found in /etc/system/config/pci/
+
+Release History
+---------------
+
+1.0 - initial release
+

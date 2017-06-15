@@ -1,0 +1,18 @@
+
+-------------------------------------------------------------------------------
+%C
+
+This module provides access to Vendor Id, Device Id and Class code text
+strings. It is only required by software which needs to display this
+information in a human readable form.
+
+Software which desires to use these facilities typically will link to the
+pci_strings.so module however it can also be dlopen()'d and the API's defined
+in <pci/pci_strings.h> searched for with dlsym()  
+
+
+Release History
+---------------
+
+1.0 - initial release
+

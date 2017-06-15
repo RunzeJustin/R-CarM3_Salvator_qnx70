@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<module name="dma">
+
+	<type>Element</type>
+
+	<classification>SDK</classification>
+
+	<source available="false">
+		<location type="">.</location>
+	</source>
+
+     <GroupOwner>hw</GroupOwner>
+
+	<contents>
+		<component id="header" generated="false">
+			<kind type="header"/>
+			<source available="true">
+				<location basedir="public" runtime="false" subdirs="true">
+					.
+				</location>
+			</source>
+		</component>
+
+	</contents>
+
+        <requires>
+                <part build="false" location="lib/dma/amanda"/>
+                <part build="false" location="utils/a/amanda"/>
+        </requires>
+
+</module>

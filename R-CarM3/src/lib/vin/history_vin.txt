@@ -1,0 +1,13 @@
+	The libcapture Ver.0.1.0 for RENESAS R-Car M3 Salvator-X board
+
+	CREATED   : 10.25.2016
+	MODIFIED  : 
+	AUTHOR    : Renesas Electronics America Inc.
+	HARDWARE  : RENESAS R-Car M3 Salvator-X board
+	TARGET OS : QNX SDP 7.0
+
+	HISTORY   :
+		10.25.2016
+		- Created release code 
+		
+						

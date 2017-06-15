@@ -1,0 +1,19 @@
+R-Car I2C A Manager
+
+%C [Generic options] [options]
+
+e.g. i2c-rcar-A -p0xe6518000 -i0x140 -v --u2
+
+options:
+-p addr             port address (Default: 0xE6508000, I2C0)
+-i irq              IRQ (Default: 0x140, I2C0)
+-v                  Verbose level (Default: 0)
+
+Generic options:
+--b bus_speed       Default bus speed. (Default: 100000)
+--m max_msg_len     Minimum length of resmgr receive buffer.
+                    (Default: 128 bytes)
+--n nparts          Minimum number of iov_t's in resmgr context.
+                    (Default: 2)
+--u unit            Unit number. Number to append to device name
+                    prefix (/dev/i2c). (Default: 0)

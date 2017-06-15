@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/usr/lib/
+INSTALLNAME=libwfdcfg-stub.so
+NAME=libwfdcfg-stub.so
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:15-ICT
+DESCRIPTION = Stub library used for linking WFD drivers

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<module name="i2c-rcar-A">
+  <classification>Driver</classification>
+  <description>
+    <short>RCAR I2C Driver</short>
+    <abstract><![CDATA[
+				The Hitachi I2C Protocol is compatible with the Philips I2C bus interface. This Multi-master fast mode capable interface is supported in the RCAR I2C I/F.
+			]]></abstract>
+  </description>
+  <supports>
+    <availability>
+      <cpu isa="arm">
+        <byteOrder>le</byteOrder>
+      </cpu>
+    </availability>
+  </supports>
+  <contents>
+    <component id="RCAR_I2C" generated="true">
+      <location basedir="arm/le">i2c-rcar-A</location>
+    </component>
+  </contents>
+  <requires>
+    <part build="false" location="lib/i2c"/>
+  </requires>
+</module>

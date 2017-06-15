@@ -1,0 +1,108 @@
+/*
+ * $QNXLicenseC:
+ * Copyright 2014, QNX Software Systems. 
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"). You 
+ * may not reproduce, modify or distribute this software except in 
+ * compliance with the License. You may obtain a copy of the License 
+ * at: http://www.apache.org/licenses/LICENSE-2.0 
+ * 
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" basis, 
+ * WITHOUT WARRANTIES OF ANY KIND, either express or implied.
+ *
+ * This file may contain contributions from others, either as 
+ * contributors under the License or as licensors under other terms.  
+ * Please review this entire file for other proprietary rights or license 
+ * notices, as well as the QNX Development Suite License Guide at 
+ * http://licensing.qnx.com/license-guide/ for other information.
+ * $
+ */
+
+#include "asmoff.def"
+
+/*
+ * Note on register usage for the various types of callouts:
+ *
+ * interrupt_id_* and interrupt_eoi_* are copied and intermixed with other
+ * kernel code during initialisation.
+ *
+ * They do not follow normal calling conventions, and must fall through
+ * to the end, rather than attempting to perform a return instruction.
+ *
+ * The INTR_GENFLAG_* bits in the intrinfo_entry defines which of the
+ * following values can be loaded on entry to these code fragments:
+ *
+ *	x19 - holds the (controller-relative) level	(INTR_GENFLAG_LOAD_LEVEL set)
+ *	x20 - holds the syspageptr					(INTR_GENFLAG_SYSPAGE  set)
+ *	x21 - holds the intrinfo_entry pointer		(INTR_GENFLAG_INTRINFO set)
+ *	x22 - holds the interrupt mask count		(INTR_GENFLAG_INTRMASK set)
+ *	x24 - holds the cpu number					(INTR_GENFLAG_LOAD_CPUNUM set)
+ *
+ * The interrupt_id_* routine returns the (controller-relative) level in x19
+ * They should return -1 for spurious interrupts.
+ *
+ * The other callouts (interrupt_mask/unmask/config, cache and debug callouts)
+ * use the standard AArch64 procedure call standard.
+ */
+
+	.text
+	.align 2
+
+#define	CALLOUT_START(rtn, rw_size, patcher)	\
+	.globl	rtn;								\
+	.align  4;									\
+	rtn:;										\
+	.xword	rw_size;							\
+	.xword	patcher;							\
+	.long	end_##rtn - start_##rtn;			\
+	start_##rtn:
+
+#define	CALLOUT_END(rtn)	end_##rtn:
+
+/*
+ * Macro to patch a callout location:
+ *
+ * x0  - value to patch
+ * loc - start of instruction sequence to patch (updated to end of sequence)
+ * t0  - temporary register (trashed)
+ * t1  - temporary register (trashed)
+ *
+ * Callouts begin with the sequence
+ *
+ * 	mov		xn, #0xabcd
+ * 	movk	xn, #0xabcd, lsl #16
+ * 	movk	xn, #0xabcd, lsl #32
+ * 	movk	xn, #0xabcd, lsl #48
+ */
+.macro	CALLOUT_PATCH	loc, t0, t1
+	mov		\t0, #4				// Loop counter
+99:	ldr		\t1, [x19]			// Load opcode
+	bfi		\t1, w0, #5, #16	// Set immediate field with low 16 bits
+	str		\t1, [x19], #4		// Store opcode, increment index
+	lsr		x0, x0, #16			// Shift off 16 bits
+	subs	\t0, \t0, #1
+	b.ne	99b
+.endm
+
+/*
+ * Macro to patch a RW storage offset value:
+ *
+ * off - register containing syspage offset of RW storage location
+ * loc - address of instruction to patch
+ * t0  - temporary register (trashed)
+ * t1  - temporary register (trashed)
+ *
+ * The instruction sequence to be patched is assumed to be:
+ *
+ *	mov		wX, 0xabcd		// wX  contains syspage RW storage offset
+ *	add		xX, xX, x20		// x20 contains syspage pointer
+ */
+.macro	CALLOUT_PATCH_RW	loc, off, t0, t1
+	ldr		\t0, [\loc]			// Read opcode
+	mov		\t1, #(0xffff << 5)
+	bic		\t0, \t0, \t1		// Clear imm16 field
+	lsl		\t1, \off, #5
+	orr		\t0, \t0, \t1		// Set imm16 field
+	str		\t0, [\loc]			// Store new opcode
+.endm

@@ -1,0 +1,14 @@
+%C Device Controller Driver for the Renesas High Speed USB controller.
+
+Syntax:
+    io-usb-dcd -d  usbumass-hsusb-rcar [options]
+
+Options:
+    ioport=<addr>   register base address
+    irq=<num>       interrupt request number
+    verbose=<int>   set verbosity level to <int>
+    dmac=<0/1>      Disable/Enable DMA transaction
+
+Examples:
+
+    io-usb-dcd -d usbumass-hsusb-rcar ioport=0xe6590000,irq=139

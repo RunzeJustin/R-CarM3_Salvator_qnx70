@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<module name="I2C Control">
+  <classification>Driver</classification>
+  <description>
+    <short>I2C Control</short>
+    <abstract>
+			<![CDATA[
+	          
+	        ]]>
+    </abstract>
+  </description>
+  <supports>
+    <availability>
+      <cpu isa="aarch64">
+        <byteOrder>le</byteOrder>
+      </cpu>
+    </availability>
+  </supports>
+  <contents>
+    <component id="i2c-control" generated="true">
+      <location basedir="aarch64/le">thermal_test</location>
+    </component>
+  </contents>
+  <requires>
+    <part build="false">
+  </requires>
+</module>

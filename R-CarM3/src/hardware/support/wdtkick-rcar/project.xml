@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<module name="wdtkick-rcar">
+  <classification>Driver</classification>
+  <description>
+    <short> Watchdog Timer Module</short>
+    <abstract><![CDATA[
+		The wdtkick is the Watchdog Timer Module for RCar
+	        ]]></abstract>
+  </description>
+  <supports>
+    <availability>
+      <cpu isa="arm">
+        <byteOrder>le.v7</byteOrder>
+      </cpu>
+    </availability>
+  </supports>
+  <contents>
+    <component id="wdtkick-rcar" generated="true">
+      <location basedir="arm/le.v7">wdtkick</location>
+    </component>
+  </contents>
+</module>

@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<module name="i2c-rcar-B">
+	<type>Element</type>
+	<classification>Driver</classification>
+
+	<description>
+			<short>R-CarH3 I2C Driver</short>
+	        <abstract>
+	          <![CDATA[The Renesas I2C Protocol is compatible with the Philips I2C bus interface.]]>
+	        </abstract>
+	</description>
+
+	<supports>
+		<availability>
+			<cpu isa="arm">
+			<byteOrder>le.v7</byteOrder>
+			</cpu>
+		</availability>
+	</supports>
+
+	<source available="false">
+		<location type="">.</location>
+	</source>
+	<GroupOwner>hw</GroupOwner>
+
+	<contents>
+		<component id="R-CarH2" generated="true">
+			<location basedir="{cpu}/{endian}"
+				 runtime="true">i2c-rcar-B</location>
+		</component>
+	</contents>
+
+	<requires>
+		<part build="false" location="lib/i2c"/>
+	</requires>
+
+</module>

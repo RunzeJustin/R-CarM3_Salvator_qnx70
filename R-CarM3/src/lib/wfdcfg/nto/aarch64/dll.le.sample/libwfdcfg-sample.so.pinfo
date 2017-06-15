@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/lib/dll/
+INSTALLNAME=libwfdcfg-sample.so
+NAME=libwfdcfg-sample.so
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:15-ICT
+DESCRIPTION = Returns a list of display timings and extensions to be used by a WFD driver

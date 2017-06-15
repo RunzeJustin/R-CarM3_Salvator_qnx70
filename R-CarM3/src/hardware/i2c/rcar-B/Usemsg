@@ -1,0 +1,20 @@
+R-Car I2C B manager
+
+%C [r-car options] [generic options]
+
+e.g. i2c-rcar-B -c50000000 -d 5/4 --b100000 --m1024
+
+AG5 options:
+-c peripheral_clk   Peripheral clock (Hz). (Default: 33000000)
+-p phys_base        I2C base address. (Default: 0xE6C20000 - channel 1)
+-i irq              I2C IRQ. (Default: 0x3C)
+-d duty_cycle       I2C Clock duty cycle (low/high; Default=1.25)
+
+Generic options:
+--b bus_speed       Default bus speed. (Default: 100000)
+--m max_msg_len     Minimum length of resmgr receive buffer.
+                    (Default: 128 bytes)
+--n nparts          Minimum number of iov_t's in resmgr context.
+                    (Default: 2)
+--u unit            Unit number. Number to append to device name
+                    prefix (/dev/i2c). (Default: 0)

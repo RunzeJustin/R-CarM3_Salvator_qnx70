@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/lib/
+INSTALLNAME=libdma-rcar-audioppdmacS.a
+NAME=libdma-rcar-audioppdmacS.a
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:10-ICT
+DESCRIPTION=DMA engine driver

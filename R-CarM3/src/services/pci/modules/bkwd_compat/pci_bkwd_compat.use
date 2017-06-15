@@ -1,0 +1,54 @@
+
+-------------------------------------------------------------------------------
+%C
+
+This module provides backwards compatible PCI server API's for driver
+software not yet modified to take advantage of the new PCI server API's
+
+*** This module will be deprecated ***
+
+Release History
+---------------
+
+1.1 - add the ability to enable all supported device MSI's instead of just 1
+
+      For customers which are unable to migrate from the old PCI server API's
+      and yet would like to utilize more than one MSI interrupt on devices
+      which support this capability, this version of the module provides that
+      functionality.
+
+      ** IMPORTANT **
+
+      Please note the following conditions and limitations
+
+      1. this applies only to MSI, not MSI-X. MSI-X is not supported by the
+         backward compatibility module
+      2. users must have access to the device driver source in order to make
+         the changes necessary to enable the added functionality (see below)
+      3. if more than one MSI is desired, then all MSI's supported by the
+         device are enabled (ie. it is one or all) and the driver must be
+         able to comprehend and deal with this configuration. That is, if the
+         device supports the maximum of 32 MSI's, then 32 will be enabled and
+         the driver has to know that
+      4. since the old PCI server API was unable to return more than one IRQ
+         in the pci_attach_device() call, the IRQ returned in the pci_inf
+         structure will be the first of a contiguous series of the number the
+         device supports
+
+      Enabling more than one MSI
+      --------------------------
+
+      In order to obtain the desired functionality, driver(s) need to add the
+      following flag to their pci_attach_device() calls. This can be added to
+      either a common header (ex. hw/pci.h if they wish), a driver specific
+      header or to the affected source file
+
+      #ifndef PCI_INIT_MSI_ALL
+      #define PCI_INIT_MSI_ALL    0x8000000
+      #endif
+
+      This flag should then be OR'd into whatever other flags are passed to
+      pci_attach_device()
+
+1.0 - initial release
+

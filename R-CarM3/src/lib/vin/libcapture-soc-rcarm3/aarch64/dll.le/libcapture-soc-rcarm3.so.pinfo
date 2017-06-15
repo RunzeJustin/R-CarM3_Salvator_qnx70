@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/lib/dll/
+INSTALLNAME=libcapture-soc-rcarm3.so
+NAME=libcapture-soc-rcarm3.so
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:14-ICT
+DESCRIPTION=VIN libraries

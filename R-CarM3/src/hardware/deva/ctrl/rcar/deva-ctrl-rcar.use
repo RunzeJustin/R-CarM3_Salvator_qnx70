@@ -1,0 +1,49 @@
+%C - SSI Sound driver for Renesas R-Car SOC family
+
+This is a DLL of the io-audio system.
+
+command:
+    io-audio -d rcar [multichannel=val][,scu=val][,ssiplay=val][,ssirecord=val][,...]
+
+Driver Options:
+        tx_ssi       : string of one to four digits indicating the SSI ports used for transmit
+        rx_ssi       : indicates the SSI port used for receive
+        voices       : indicates number of voices used
+        master       : one of the SSI ports indicated by tx_ssi and rx_ssi is configured as master
+        sync_start 0 : No synchronized start of SSI ports 3,4
+                   1 : Synchronize start of SSI ports 3,4
+        tdm_ext    0 : TDM extended mode is not used
+                   1 : TDM extended mode is used
+        scu:       0 : Disable SCU
+                   1 : Enable SCU
+        mlp:       0 : Disable MLP (default)
+                   1 : Enable MLP
+        dtcp:      0 : Disable DTCP (default)
+                   1 : Enable MLP
+        sample_size  : 16, 24 or 32 bits (default is 16)
+        clk_pol      : Bit clock polarity
+                   0 - data sampled at SCK falling edge
+                   1 - data sampled at SCK rising edge (default)
+        fsync_pol    : Frame sync (WS) polarity
+                   0 - active low (default)
+                   1 - active high
+        bit_delay    : Delay between frame sync and start of data
+                   0 - none
+                   1 - 1 cycle (default)
+        sample_rate  : range in Hz - min_rate:max_rate (default 8000 - 48000 Hz)
+        slot_size    : number of bits in one phase of frame clock, 16 (default) or 32
+        ver          : RCAR version string ("h2", "e2", "m2", etc - default is "h2")
+
+examples:
+
+   # Start audio driver on SSI 0 for Playback and SSI 1 for capture with scu for R-Car M2 Koelsch board
+   io-audio -d rcar tx_ssi=0,rx_ssi=1,voices=2,master,scu=1,ver=m2
+
+   # Start audio driver on SSI 0,1,2,9 for Playback with scu
+   io-audio -d rcar tx_ssi=0129,master,scu=1
+
+   # Start audio driver on SSI 3 for Playback and SSI 4 for capture
+   io-audio -d rcar tx_ssi=3,rx_ssi=4,master,sync_start
+
+
+

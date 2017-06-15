@@ -1,0 +1,10 @@
+TARGET(elf64-littleaarch64)
+OUTPUT_FORMAT(elf64-littleaarch64)
+ENTRY(_start)
+SECTIONS
+{
+	. = 0x49000000;
+	.text : { *(.text) }
+	.data : { *(.data) }
+	.bss : { *(.bss) }
+}

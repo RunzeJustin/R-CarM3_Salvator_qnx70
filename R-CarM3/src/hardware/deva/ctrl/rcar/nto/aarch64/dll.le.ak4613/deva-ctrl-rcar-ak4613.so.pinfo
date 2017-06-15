@@ -1,0 +1,8 @@
+STATE=Experimental
+INSTALLDIR=aarch64le/lib/dll/
+INSTALLNAME=deva-ctrl-rcar-ak4613.so
+NAME=deva-ctrl-rcar-ak4613.so
+USER=INIdoi.nguyen
+HOST=pc00361
+DATE=2017/05/24-18:18:21-ICT
+DESCRIPTION=Driver for the R-Car SSI controller

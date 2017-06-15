@@ -1,0 +1,7 @@
+%C [-m]
+Generate a random MAC address based on the SOC's unique ID number and output on stdout
+
+Options
+none -> print ID number
+"-m" -> print MAC address. For example a network driver parameter could be added when running io-pkt:
+	mac=`genmac-mx6x -m`
